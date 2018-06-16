@@ -1,0 +1,72 @@
+---
+title: "Quality of weight lifting exercise"
+author: "Medhat Farag"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+### Synopsis
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this report, data will be used from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2);library(caret); library(parallel); library(doParallel)
+```
+
+### More about exercise
+
+- Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+- Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. Participants were supervised by an experienced weight lifter to make sure the execution complied to the manner they were supposed to simulate. The exercises were performed by six male participants aged between 20-28 years, with little weight lifting experience. We made sure that all participants could easily simulate the mistakes in a safe and controlled manner by using a relatively light dumbbell (1.25kg).
+
+- More info is available on this link http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+### Analysis procedures
+
+- The original training dataset contains 160 variables with 19622 observations.
+- All variables with empty observations or NA ones are excluded from dataset along with the first column which contains observations index.
+- Dataset is splitted into 2 portions for training & cross validation purposes.
+- Boosting model is built with bootstrapping on the default 25 samples & parallel processing option.
+- Boosting model is used because it's considered along with random forest as the highest accuracy models, but it is computationally less demanding than random forest.
+- Cross validation is done using the model & accuracy is calculated and out of sample error found satisfying.
+- Model is applied on test set and results file extracted.
+
+# Appendix
+
+Code chunks which used to generate the results & figures mentioned in the report are introduced here.
+
+```{r First_requirement, fig.width = 10, fig.height = 7, fig.align = 'center', warning = FALSE}
+# Register multiple cores for parallel processing 
+clus <- makeCluster(detectCores()-1)
+registerDoParallel(clus)
+
+# Excluding empty & NA variables
+setwd("~/R Directory/C8W4")
+trainds <- read.csv("pml-training.csv")
+exv <- apply(trainds, 2, function(x) sum(is.na(x) | x==""))
+trainds <- trainds[,-c(1, which(exv!=0))]
+
+# Create training & cross validation sets
+set.seed(145)
+inTrain <- createDataPartition(y=trainds$classe,p=0.65, list=FALSE)
+training <- trainds[inTrain,]
+validation <- trainds[-inTrain,]
+
+# Create model & calculate accuracy
+mdl <- train(classe ~ ., method = "gbm", data = training)
+mdl
+mean(predict(mdl, validation) == validation$classe)
+
+# Apply model on test set
+testds <- read.csv("pml-testing.csv")
+testds <- testds[,-c(1, which(exv!=0))]
+write.csv(predict(mdl, testds), file = "Test_Results.csv")
+
+# Deregister multiple cores
+stopCluster(clus)
+registerDoSEQ()
+```
+
