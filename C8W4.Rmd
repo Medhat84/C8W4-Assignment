@@ -31,7 +31,7 @@ library(ggplot2);library(caret); library(parallel); library(doParallel)
 - Dataset is splitted into 2 portions for training & cross validation purposes.
 - Boosting model is built with bootstrapping on the default 25 samples & parallel processing option.
 - Boosting model is used because it's considered along with random forest as the highest accuracy models, but it is computationally less demanding than random forest.
-- Cross validation is done using the model & accuracy is calculated and out of sample error found satisfying.
+- Cross validation is done using the model & accuracy is calculated and out of sample error found satisfying (higher than 99%).
 - Model is applied on test set and results file extracted.
 
 # Appendix
@@ -59,6 +59,7 @@ validation <- trainds[-inTrain,]
 mdl <- train(classe ~ ., method = "gbm", data = training)
 mdl
 mean(predict(mdl, validation) == validation$classe)
+confusionMatrix(predict(mdl, validation), validation$classe)
 
 # Apply model on test set
 testds <- read.csv("pml-testing.csv")
